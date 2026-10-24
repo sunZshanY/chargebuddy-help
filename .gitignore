@@ -16,11 +16,16 @@ backend/stations.json
 
 # Android
 android/.gradle/
+android/.gradle-home/
 android/build/
 android/app/build/
 android/local.properties
 android/.idea/
 android/app/.cxx/
+*.apk
+
+# 前端下载产物
+frontend/downloads/*.apk
 
 # iOS / Xcode
 ios/**/xcuserdata/
