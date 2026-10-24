@@ -53,14 +53,14 @@ class MapView @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun bounds(): FloatArray {
+    private fun bounds(): DoubleArray {
         var minLat = userLat; var maxLat = userLat
         var minLng = userLng; var maxLng = userLng
         for (s in stations) {
             minLat = min(minLat, s.lat); maxLat = max(maxLat, s.lat)
             minLng = min(minLng, s.lng); maxLng = max(maxLng, s.lng)
         }
-        return floatArrayOf(minLat, maxLat, minLng, maxLng)
+        return doubleArrayOf(minLat, maxLat, minLng, maxLng)
     }
 
     override fun onDraw(canvas: Canvas) {
