@@ -43,7 +43,7 @@ struct ContentView: View {
             list
         }
         .onAppear {
-            battery.onLowBattery = { runEmergency() }
+            battery.onLowBattery = { runEmergency(level: $0) }
             refresh()
         }
         .alert("电量即将耗尽！", isPresented: $showingEmergency) {
@@ -69,7 +69,7 @@ struct ContentView: View {
         HStack {
             Button("刷新站点") { refresh() }
                 .buttonStyle(.borderedProminent)
-            Button("模拟 1%") { runEmergency() }
+            Button("模拟 20%") { runEmergency(level: 20) }
                 .buttonStyle(.bordered)
             Spacer()
             Button("本地C++路线") { runLocalRoute() }
@@ -141,7 +141,7 @@ struct ContentView: View {
         }
     }
 
-    private func runEmergency() {
+    private func runEmergency(level: Int) {
         Task {
             do {
                 let resp = try await ApiClient.emergency(
@@ -151,9 +151,10 @@ struct ContentView: View {
                 stations = [resp.station]
                 routeCoords = resp.route.pathCoords.map(\.coordinate)
                 routeText = resp.hint
+                let trigger = level < 0 ? "省电模式已开启，电量告急" : "电量已降至 \(level)%"
                 emergencyMessage = String(
-                    format: "为你定位到最近可借码宝：%@\n可用 %d 个，步行约 %.0f 米\n%@",
-                    resp.station.name, resp.station.available, resp.station.distanceM, resp.hint
+                    format: "%@\n为你定位到最近可借码宝：%@\n可用 %d 个，步行约 %.0f 米\n%@",
+                    trigger, resp.station.name, resp.station.available, resp.station.distanceM, resp.hint
                 )
                 showingEmergency = true
                 moveCamera(to: resp.station.coordinate)

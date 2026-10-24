@@ -36,6 +36,7 @@ createApp({
     const homeCanvas = ref(null);
     const detailCanvas = ref(null);
     let emergencyActive = false;
+    const firedLevels = new Set();
     let drainTimer = null;
 
     // ---------- 文档页交互状态 ----------
@@ -191,13 +192,13 @@ createApp({
       }
     }
 
-    // ---------- 低电量自动定位（1%） ----------
-    async function simulateLowBattery() {
+    // ---------- 低电量自动定位（20%/10%/5% 或省电模式） ----------
+    async function simulateLowBattery(level = 20) {
       if (emergencyActive) return;
       emergencyActive = true;
-      battery.value = 1;
+      battery.value = level;
       updateBatteryText();
-      flash('电量仅剩 1%！正在自动获取位置并寻找最近可借充电宝…');
+      flash('电量仅剩 ' + level + '%！正在自动获取位置并寻找最近可借充电宝…');
       loading.value = true;
       try {
         const resp = await API.emergency(current.value.lat, current.value.lng);
@@ -210,7 +211,7 @@ createApp({
         modal.show = true;
         modal.title = '低电量自动定位成功';
         modal.body =
-          '电量即将耗尽（1%）！\n\n' +
+          '电量即将耗尽（' + level + '%）！\n\n' +
           '最近可借充电宝：' + resp.station.name + '\n' +
           '可用 ' + resp.station.available + ' 个 · 步行约 ' + Math.round(resp.station.distance_m) + ' 米\n\n' +
           resp.hint;
@@ -263,6 +264,7 @@ createApp({
         await API.rent(s.id);
         s.available--;
         battery.value = 100;                 // 借用成功，开始充电
+        firedLevels.clear();
         updateBatteryText();
         flash('借用成功！正在充电，电量已恢复为 ' + battery.value + '%');
       } catch (e) {
@@ -372,15 +374,21 @@ createApp({
       }
     }
 
-    // ---------- 电量自动下降（跌到 1% 且在演示页时自动触发兜底） ----------
+    // ---------- 电量自动下降（下穿 20%/10%/5% 时自动触发兜底） ----------
     function startBatteryDrain() {
       drainTimer = setInterval(() => {
+        const before = battery.value;
         if (battery.value > 1) {
           battery.value--;
           updateBatteryText();
-        } else if (!emergencyActive && (route.value === 'demo' || route.value === 'detail')) {
-          simulateLowBattery();
         }
+        [20, 10, 5].forEach(t => {
+          if (battery.value <= t && before > t && !firedLevels.has(t) &&
+              (route.value === 'demo' || route.value === 'detail')) {
+            firedLevels.add(t);
+            simulateLowBattery(t);
+          }
+        });
       }, 6000);
     }
 

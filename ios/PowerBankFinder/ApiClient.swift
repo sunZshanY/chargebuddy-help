@@ -1,8 +1,17 @@
 import Foundation
 
 enum ApiClient {
-    // 模拟器可访问本机；真机请改为宿主机局域网 IP，例如 http://192.168.1.10:8000
-    static let baseURL = URL(string: "http://127.0.0.1:8000")!
+    // 模拟器默认本机；真机可通过 UserDefaults 覆盖 baseURL，或直接改成宿主机局域网 IP，例如 http://192.168.1.10:8000
+    static var baseURL: URL {
+        get {
+            if let s = UserDefaults.standard.string(forKey: "baseURL"), !s.isEmpty,
+               let u = URL(string: s) {
+                return u
+            }
+            return URL(string: "http://127.0.0.1:8000")!
+        }
+        set { UserDefaults.standard.set(newValue.absoluteString, forKey: "baseURL") }
+    }
 
     private static func get<T: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> T {
         var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!

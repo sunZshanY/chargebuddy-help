@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="充电宝救援 ChargeBuddy：低电量(1%)自动定位 + C++ 最快路线，跨 Kotlin/Swift/Python/C++ 四种语言协同的工程技术演示。">
+  <meta name="description" content="充电宝救援 ChargeBuddy：低电量(20%)自动定位 + C++ 最快路线，跨 Kotlin/Swift/Python/C++ 四种语言协同的工程技术演示。">
   <title>⚡ 充电宝救援 ChargeBuddy · README + 在线演示</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -40,7 +40,7 @@
           <h1>⚡ 充电宝救援 <span class="grad-text">ChargeBuddy</span></h1>
           <p class="hero-sub">
             面向「电量不足人群」的共享充电宝定位与借用应用：实时定位附近充电宝柜机，
-            <b>当电量降到 1% 时自动获取位置</b>，并给出 <b>最快路线</b>（C++ 算法）引导用户前往借用。
+            <b>当电量降到 20%（或省电模式开启）时自动获取位置</b>，并给出 <b>最快路线</b>（C++ 算法）引导用户前往借用。
           </p>
           <div class="hero-btns">
             <a class="btn primary lg" href="#/demo">🚀 立即体验在线演示</a>
@@ -88,7 +88,7 @@
           <div class="feature-card">
             <span class="f-ico">🪫</span>
             <h3>低电量自动定位</h3>
-            <p>电量 ≤ 1% 自动触发：抓取当前位置 → 推荐最近可借点位。</p>
+            <p>电量 ≤ 20%（20%/10%/5% 或省电模式）自动触发：抓取当前位置 → 推荐最近可借点位。</p>
           </div>
           <div class="feature-card">
             <span class="f-ico">🧭</span>
@@ -365,8 +365,8 @@ uvicorn app:app --host 0.0.0.0 --port 8000
             <p><code>native/src/route.cpp</code> 实现：<code>dijkstra()</code> 优先队列优化的单源最短路径；<code>a_star()</code> 以球面直线距离（时间模式按 1.4 m/s 换算为时间下界）为启发式加速；无向图、支持 <code>Distance</code> / <code>Time</code> 两种边权，<code>route_c_api.cpp</code> 导出 C 接口。</p>
           </div>
           <div class="core-card">
-            <h3>🪫 低电量自动定位（1%）</h3>
-            <p>Android：<code>ACTION_BATTERY_CHANGED</code> + <code>BatteryManager.EXTRA_LEVEL</code>，≤1% → 定位 → <code>/api/emergency</code>。iOS：<code>UIDevice.batteryLevel</code> 通知，≤1% → <code>CLLocationManager</code> → <code>/api/emergency</code>。</p>
+            <h3>🪫 低电量自动定位（20%）</h3>
+            <p>Android：<code>ACTION_BATTERY_CHANGED</code> + <code>BatteryManager.EXTRA_LEVEL</code>，下穿 20%/10%/5% 或省电模式 → 定位 → <code>/api/emergency</code>。iOS：<code>UIDevice.batteryLevel</code> 通知，下穿 20%/10%/5% 或低电量模式 → <code>CLLocationManager</code> → <code>/api/emergency</code>。</p>
           </div>
           <div class="core-card">
             <h3>🕷️ 地图抓包（Python）</h3>
@@ -386,7 +386,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
     <section class="view" v-show="route === 'demo'">
       <div class="page-title-row">
         <h2 class="page-title">🗺️ 附近充电宝 · 在线演示</h2>
-        <span class="hint">电量会缓慢下降，跌到 1% 自动触发「低电量兜底」</span>
+        <span class="hint">电量会缓慢下降，跌到 20% 自动触发「低电量兜底」</span>
       </div>
 
       <div class="battery-bar">
@@ -396,7 +396,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
         <span class="battery-num" :class="{ low: battery <= 5 }">{{ battery }}%</span>
         <span class="hint">{{ batteryText }}</span>
         <span class="spacer"></span>
-        <button class="mini danger" @click="simulateLowBattery">🪫 模拟电量 1%</button>
+        <button class="mini danger" @click="simulateLowBattery(20)">🪫 模拟电量 20%</button>
         <button class="mini" @click="locate">📍 重新定位</button>
       </div>
 
@@ -514,9 +514,9 @@ uvicorn app:app --host 0.0.0.0 --port 8000
             <span class="ok-text" v-else-if="backendOk === true">· 后端已连接 ✓</span>
           </li>
           <li><b>打开本页</b>：浏览器访问 <code>http://127.0.0.1:8000/app/</code></li>
-          <li><b>体验低电量自动定位</b>：点「模拟电量 1%」→ 自动定位并推荐最近可借点位 + 最快路线</li>
+          <li><b>体验低电量自动定位</b>：点「模拟电量 20%」→ 自动定位并推荐最近可借点位 + 最快路线</li>
           <li><b>详情/借用</b>：点击列表站点（或地图上的站点圆点）进入「详情」，切换最快/最短路线，一键借用/归还</li>
-          <li><b>电量模拟</b>：页面电量会缓慢下降，跌到 1% 会自动触发兜底流程</li>
+          <li><b>电量模拟</b>：页面电量会缓慢下降，跌到 20% 会自动触发兜底流程</li>
         </ol>
       </div>
     </section>

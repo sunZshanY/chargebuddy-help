@@ -1,7 +1,64 @@
 <resources>
     <string name="app_name">充电宝救援</string>
+
+    <!-- 通用按钮 -->
     <string name="btn_refresh">刷新附近站点</string>
-    <string name="btn_simulate">模拟电量到 1%</string>
+    <string name="btn_simulate">模拟电量到 20%</string>
     <string name="btn_local_route">本地最快路线(C++)</string>
-    <string name="battery_prefix">当前电量</string>
+    <string name="btn_save_server">保存</string>
+    <string name="btn_navigate">去导航</string>
+    <string name="btn_got_it">知道了</string>
+    <string name="btn_rent">借用</string>
+
+    <!-- 后端设置 -->
+    <string name="hint_server">后端地址，如 http://192.168.1.10:8000</string>
+    <string name="server_saved">后端地址已保存：%1$s</string>
+
+    <!-- 地图来源设置 -->
+    <string name="map_source_label">地图来源</string>
+    <string-array name="map_provider_labels">
+        <item>高德地图</item>
+        <item>百度地图</item>
+        <item>模拟数据（内置）</item>
+    </string-array>
+    <string name="map_source_amap">高德地图</string>
+    <string name="map_source_baidu">百度地图</string>
+    <string name="map_source_mock">模拟数据</string>
+    <string name="hint_amap_key">高德 Key（留空使用模拟数据）</string>
+    <string name="hint_baidu_key">百度 AK（留空使用模拟数据）</string>
+    <string name="btn_save_map">保存地图设置</string>
+    <string name="map_settings_saved">地图设置已保存：%1$s</string>
+    <string name="map_api_failed_fallback">地图接口失败，已切换模拟数据</string>
+
+    <!-- 电量显示 -->
+    <string name="battery_initial">当前电量：--</string>
+    <string name="battery_line">当前电量：%1$d%%（%2$s）</string>
+    <string name="battery_line_boot">当前电量：%1$d%%</string>
+    <string name="battery_charging">充电中</string>
+    <string name="battery_discharging">放电</string>
+
+    <!-- 低电量弹窗 -->
+    <string name="dialog_low_battery_title">电量即将耗尽！</string>
+    <string name="low_battery_power_save">省电模式已开启，电量告急</string>
+    <string name="low_battery_level">电量已降至 %1$d%%</string>
+    <string name="dialog_station_name">最近可借充电宝：%1$s</string>
+    <string name="dialog_available">可用 %1$d 个</string>
+    <string name="dialog_distance">距离：%1$.0f 米</string>
+    <string name="dialog_address">地址：%1$s</string>
+
+    <!-- 站点弹窗 -->
+    <string name="station_dialog_meta">有货 %1$d/%2$d · 距离 %3$.0f 米</string>
+    <string name="station_address_line">地址：%1$s</string>
+
+    <!-- 借用/归还 -->
+    <string name="rent_success">借用成功！</string>
+    <string name="rent_failed">借用失败：%1$s</string>
+
+    <!-- 其他提示 -->
+    <string name="no_station_found">附近没有找到可用的充电宝站点</string>
+    <string name="emergency_failed">获取最近充电宝失败：%1$s</string>
+    <string name="local_route_need_refresh">请先刷新附近站点</string>
+    <string name="local_route_success">本地 C++ 最快路线：%1$.1f 秒（%2$d 跳）</string>
+    <string name="local_route_fail">本地路线不可达</string>
+    <string name="navigation_not_found">未找到可用的地图应用</string>
 </resources>

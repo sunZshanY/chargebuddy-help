@@ -5,14 +5,17 @@ final class BatteryMonitor: ObservableObject {
     @Published var level: Int = 0
     @Published var isCharging: Bool = false
 
-    /// 电量降到 1% 时触发（用于"低电量自动获取位置"）
-    var onLowBattery: (() -> Void)?
+    /// 电量下穿 20%/10%/5% 或进入低电量模式时触发（用于"低电量自动获取位置"）。
+    /// 参数 level 取值为 20/10/5，或 -1 表示低电量模式。
+    var onLowBattery: ((Int) -> Void)?
 
-    private let threshold = 1
+    private let thresholds = [20, 10, 5]
+    private var lastLevel = 100
 
     init() {
         UIDevice.current.isBatteryMonitoringEnabled = true
         refresh()
+        lastLevel = level >= 0 ? level : 100
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(batteryChanged),
@@ -22,6 +25,10 @@ final class BatteryMonitor: ObservableObject {
             self, selector: #selector(batteryChanged),
             name: UIDevice.batteryStateDidChangeNotification, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(powerModeChanged),
+            name: ProcessInfo.powerStateDidChangeNotification, object: nil
+        )
     }
 
     deinit {
@@ -29,9 +36,24 @@ final class BatteryMonitor: ObservableObject {
     }
 
     @objc private func batteryChanged() {
+        let prev = lastLevel
         refresh()
-        if level <= threshold && !isCharging {
-            onLowBattery?()
+        if isCharging {
+            lastLevel = level
+            return
+        }
+        for t in thresholds where level <= t && prev > t {
+            onLowBattery?(t)
+        }
+        lastLevel = level
+    }
+
+    @objc private func powerModeChanged() {
+        if ProcessInfo.processInfo.isLowPowerModeEnabled {
+            refresh()
+            if !isCharging {
+                onLowBattery?(-1)
+            }
         }
     }
 

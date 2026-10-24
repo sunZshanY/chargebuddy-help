@@ -4,21 +4,26 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.powerbank.finder.api.ApiClient
+import com.powerbank.finder.api.RentBody
 import com.powerbank.finder.databinding.ActivityMainBinding
+import com.powerbank.finder.map.MapConfig
+import com.powerbank.finder.map.MapNavigator
+import com.powerbank.finder.map.MapSearchService
 import com.powerbank.finder.model.PathCoord
 import com.powerbank.finder.model.Station
 import com.powerbank.finder.native.GraphBuilder
 import com.powerbank.finder.native.RouteJNI
 import com.powerbank.finder.ui.StationAdapter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Locale
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,7 +40,7 @@ class MainActivity : AppCompatActivity() {
     private val locationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
-        if (grants.values.any { it }) locateUser { lat, lng ->
+        if (grants.values.any { it }) locateUser { _, _ ->
             refreshStations()
         }
     }
@@ -50,20 +55,29 @@ class MainActivity : AppCompatActivity() {
 
         binding.stationList.layoutManager = LinearLayoutManager(this)
 
+        binding.etServer.setText(ApiClient.load(this))
+        setupMapSettings()
+
         batteryMonitor.onBatteryChanged = { level, charging ->
-            val status = if (charging) "充电中" else "放电"
-            binding.tvBattery.text = getString(R.string.battery_prefix) + " $level%（$status）"
+            val status = if (charging) getString(R.string.battery_charging)
+            else getString(R.string.battery_discharging)
+            binding.tvBattery.text = getString(R.string.battery_line, level, status)
         }
-        batteryMonitor.onLowBattery = { handleLowBattery() }
+        batteryMonitor.onLowBattery = { level -> handleLowBattery(level) }
         batteryMonitor.start()
         val cur = batteryMonitor.currentLevel() ?: -1
-        binding.tvBattery.text = getString(R.string.battery_prefix) + " $cur%"
+        binding.tvBattery.text = getString(R.string.battery_line_boot, cur)
 
         binding.btnRefresh.setOnClickListener {
             locateUser { _, _ -> refreshStations() }
         }
         binding.btnSimulate.setOnClickListener {
-            handleLowBattery()
+            handleLowBattery(20)
+        }
+        binding.btnSaveServer.setOnClickListener {
+            val url = ApiClient.save(this, binding.etServer.text.toString())
+            Toast.makeText(this, getString(R.string.server_saved, url), Toast.LENGTH_SHORT).show()
+            refreshStations()
         }
         binding.btnLocalRoute.setOnClickListener {
             runLocalRoute()
@@ -76,6 +90,53 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         batteryMonitor.stop()
+    }
+
+    // ---------- 地图来源设置 ----------
+    private fun setupMapSettings() {
+        binding.spinnerMapProvider.adapter = ArrayAdapter.createFromResource(
+            this,
+            R.array.map_provider_labels,
+            android.R.layout.simple_spinner_item
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        binding.spinnerMapProvider.setSelection(providerIndex(MapConfig.provider(this)))
+        binding.etAmapKey.setText(MapConfig.amapKey(this))
+        binding.etBaiduKey.setText(MapConfig.baiduKey(this))
+
+        binding.btnSaveMap.setOnClickListener {
+            val provider = providerValue(binding.spinnerMapProvider.selectedItemPosition)
+            MapConfig.save(
+                this,
+                provider,
+                binding.etAmapKey.text.toString(),
+                binding.etBaiduKey.text.toString()
+            )
+            Toast.makeText(
+                this,
+                getString(R.string.map_settings_saved, providerLabel(provider)),
+                Toast.LENGTH_SHORT
+            ).show()
+            locateUser { _, _ -> refreshStations() }
+        }
+    }
+
+    private fun providerIndex(provider: String): Int = when (provider) {
+        MapConfig.PROVIDER_BAIDU -> 1
+        MapConfig.PROVIDER_MOCK -> 2
+        else -> 0
+    }
+
+    private fun providerValue(index: Int): String = when (index) {
+        1 -> MapConfig.PROVIDER_BAIDU
+        2 -> MapConfig.PROVIDER_MOCK
+        else -> MapConfig.PROVIDER_AMAP
+    }
+
+    private fun providerLabel(provider: String): String = when (provider) {
+        MapConfig.PROVIDER_BAIDU -> getString(R.string.map_source_baidu)
+        MapConfig.PROVIDER_MOCK -> getString(R.string.map_source_mock)
+        else -> getString(R.string.map_source_amap)
     }
 
     // ---------- 定位 ----------
@@ -104,87 +165,137 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- 数据 ----------
+    // ---------- 数据（地图搜索 + mock 兜底，不依赖后端） ----------
     private fun refreshStations() {
+        val ctx = this
         lifecycleScope.launch {
-            runCatching {
-                ApiClient.api.stations(currentLat, currentLng)
-            }.onSuccess { list ->
-                stations = list
-                renderMap()
-            }.onFailure {
-                Toast.makeText(this@MainActivity, "后端不可用：${it.message}", Toast.LENGTH_SHORT).show()
+            val list = runCatching {
+                withContext(Dispatchers.IO) {
+                    MapSearchService.searchNearby(ctx, currentLat, currentLng)
+                }
+            }.getOrElse {
+                Toast.makeText(ctx, R.string.map_api_failed_fallback, Toast.LENGTH_LONG).show()
+                withContext(Dispatchers.IO) {
+                    MapSearchService.mockSearch(currentLat, currentLng)
+                }
             }
+            stations = list
+            renderMap()
         }
     }
 
     private fun renderMap() {
         val adapter = StationAdapter(stations) { s ->
-            showRouteToStation(s)
+            onStationTap(s)
         }
         binding.stationList.adapter = adapter
         binding.mapView.setData(currentLat, currentLng, stations, currentRoute)
     }
 
-    private fun showRouteToStation(s: Station) {
-        lifecycleScope.launch {
-            runCatching {
-                ApiClient.api.route(currentLat, currentLng, s.id, "time")
-            }.onSuccess { route ->
-                currentRoute = route.pathCoords
-                binding.mapView.setData(currentLat, currentLng, stations, currentRoute)
-                Toast.makeText(
-                    this@MainActivity,
-                    String.format(Locale.CHINA, "最快路线：%.0f 秒（%s）", route.totalWeight, route.engine ?: "-"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }.onFailure {
-                Toast.makeText(this@MainActivity, "路线获取失败：${it.message}", Toast.LENGTH_SHORT).show()
+    /** 点击站点：提供步行导航与借用两个动作（不再请求后端路线） */
+    private fun onStationTap(s: Station) {
+        val ctx = this
+        AlertDialog.Builder(ctx)
+            .setTitle(s.name)
+            .setMessage(
+                getString(R.string.station_dialog_meta, s.available, s.total, s.distanceM) +
+                    if (s.address.isBlank()) "" else "\n" + getString(R.string.station_address_line, s.address)
+            )
+            .setPositiveButton(R.string.btn_navigate) { _, _ ->
+                MapNavigator.openWalkingNavigation(ctx, MapConfig.provider(ctx), s.lat, s.lng, s.name)
             }
-        }
+            .setNeutralButton(R.string.btn_rent) { _, _ -> rent(s.id) }
+            .setNegativeButton(R.string.btn_got_it, null)
+            .show()
     }
 
-    // ---------- 低电量兜底（自动获取位置 -> 找最近充电宝） ----------
-    private fun handleLowBattery() {
+    // ---------- 低电量弹窗（定位 -> 地图搜索 -> 最近可借站点） ----------
+    private fun handleLowBattery(level: Int) {
         if (emergencyTriggered) return
         emergencyTriggered = true
+        val ctx = this
+        val trigger = if (level < 0) getString(R.string.low_battery_power_save)
+        else getString(R.string.low_battery_level, level)
 
         locateUser { lat, lng ->
             lifecycleScope.launch {
-                runCatching {
-                    ApiClient.api.emergency(lat, lng)
-                }.onSuccess { resp ->
-                    stations = listOf(resp.station)
-                    currentRoute = resp.route.pathCoords
+                try {
+                    val list = runCatching {
+                        withContext(Dispatchers.IO) {
+                            MapSearchService.searchNearby(ctx, lat, lng)
+                        }
+                    }.getOrElse {
+                        Toast.makeText(ctx, R.string.map_api_failed_fallback, Toast.LENGTH_LONG).show()
+                        withContext(Dispatchers.IO) {
+                            MapSearchService.mockSearch(lat, lng)
+                        }
+                    }
+                    if (list.isEmpty()) {
+                        Toast.makeText(ctx, R.string.no_station_found, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                    // 可借的最近站；全部不可借则取距离最近
+                    val nearest = list.filter { it.available > 0 }.minByOrNull { it.distanceM }
+                        ?: list.minByOrNull { it.distanceM }!!
+                    stations = list
+                    currentRoute = emptyList()
                     binding.mapView.setData(lat, lng, stations, currentRoute)
-                    AlertDialog.Builder(this@MainActivity)
-                        .setTitle("电量即将耗尽！")
-                        .setMessage(
-                            "为你定位到最近可借码宝：${resp.station.name}\n" +
-                                "可用 ${resp.station.available} 个，步行约 " +
-                                String.format(Locale.CHINA, "%.0f 米\n", resp.station.distanceM) +
-                                resp.hint
-                        )
-                        .setPositiveButton("去借用") { _, _ -> rent(resp.station.id) }
-                        .setNegativeButton("取消", null)
+
+                    val message = buildString {
+                        append(trigger)
+                        append("\n")
+                        append(getString(R.string.dialog_station_name, nearest.name))
+                        append("\n")
+                        append(getString(R.string.dialog_available, nearest.available))
+                        append("\n")
+                        append(getString(R.string.dialog_distance, nearest.distanceM))
+                        if (nearest.address.isNotBlank()) {
+                            append("\n")
+                            append(getString(R.string.dialog_address, nearest.address))
+                        }
+                    }
+                    AlertDialog.Builder(ctx)
+                        .setTitle(R.string.dialog_low_battery_title)
+                        .setMessage(message)
+                        .setPositiveButton(R.string.btn_navigate) { _, _ ->
+                            MapNavigator.openWalkingNavigation(
+                                ctx,
+                                MapConfig.provider(ctx),
+                                nearest.lat,
+                                nearest.lng,
+                                nearest.name
+                            )
+                        }
+                        .setNegativeButton(R.string.btn_got_it, null)
                         .show()
-                }.onFailure {
-                    Toast.makeText(this@MainActivity, "兜底失败：${it.message}", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        ctx,
+                        getString(R.string.emergency_failed, e.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } finally {
+                    emergencyTriggered = false
                 }
             }
         }
-        emergencyTriggered = false
     }
 
+    // ---------- 借用/归还（仍走后端；失败仅提示，不影响找电宝与弹窗） ----------
     private fun rent(stationId: Int) {
+        val ctx = this
         lifecycleScope.launch {
-            runCatching { ApiClient.api.rent(com.powerbank.finder.api.RentBody(stationId)) }
+            runCatching { ApiClient.api.rent(RentBody(stationId)) }
                 .onSuccess {
-                    Toast.makeText(this@MainActivity, "借用成功！", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, R.string.rent_success, Toast.LENGTH_SHORT).show()
                     refreshStations()
                 }
                 .onFailure {
-                    Toast.makeText(this@MainActivity, "借用失败：${it.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        ctx,
+                        getString(R.string.rent_failed, it.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
         }
     }
@@ -192,7 +303,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- 本地 C++ 最快路线演示 ----------
     private fun runLocalRoute() {
         if (stations.isEmpty()) {
-            Toast.makeText(this, "请先刷新附近站点", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.local_route_need_refresh, Toast.LENGTH_SHORT).show()
             return
         }
         val (graph, goal) = GraphBuilder.build(currentLat, currentLng, stations)
@@ -205,11 +316,11 @@ class MainActivity : AppCompatActivity() {
             binding.mapView.setData(currentLat, currentLng, stations, currentRoute)
             Toast.makeText(
                 this,
-                String.format(Locale.CHINA, "本地 C++ 最快路线：%.1f 秒（%d 跳）", result.totalWeight, result.path.size - 1),
+                getString(R.string.local_route_success, result.totalWeight, result.path.size - 1),
                 Toast.LENGTH_LONG
             ).show()
         } else {
-            Toast.makeText(this, "本地路线不可达", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.local_route_fail, Toast.LENGTH_SHORT).show()
         }
     }
 }

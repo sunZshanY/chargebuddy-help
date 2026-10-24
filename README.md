@@ -1,7 +1,7 @@
 # 充电宝救援（ChargeBuddy）Demo
 
 一个面向"电量不足人群"的共享充电宝定位与借用应用 Demo：实时定位附近充电宝柜机，
-**当电量降到 1% 时自动获取位置**，并给出**最快路线**（C++ 算法）引导用户前往借用。
+**当电量降到 20%（20%/10%/5% 或省电模式开启）时自动获取位置**，并给出**最快路线**（C++ 算法）引导用户前往借用。
 
 > 本项目是工程技术演示，跨 4 种语言协同：Kotlin（Android）、Swift（iOS）、
 > Python（后端 + 地图抓包）、C/C++（最快路线算法）。
@@ -11,7 +11,7 @@
 ## 功能特性
 
 - 附近充电宝站点展示（有货 / 已借空状态着色）
-- **低电量自动定位**：电量 ≤ 1% 自动触发，抓取当前位置，推荐最近可借点位
+- **低电量自动定位**：电量 ≤ 20%（下穿 20%/10%/5% 或省电模式）自动触发，抓取当前位置，推荐最近可借点位
 - **最快路线规划**：Dijkstra / A* 算法，支持"最快（时间）"与"最短（距离）"两种原则
 - 借用 / 归还充电宝（后端接口 + 内存库存）
 - 地图抓包：Python 从地图开放平台抓取充电宝 POI，刷新站点数据
@@ -113,11 +113,12 @@ python scraper.py --lat 31.2304 --lng 121.4737 --radius 2000 --out stations.json
 1. 用 Android Studio 打开 `android/` 目录（AGP 8.5.2 / Kotlin 1.9.24）。
 2. 构建时会通过 `app/src/main/cpp/CMakeLists.txt` 自动把 `native/` 的 C++ 源码编入
    `libfastroute.so`，供 JNI 调用。
-3. 在模拟器运行（`BASE_URL` 已指向 `http://10.0.2.2:8000`，即宿主机后端）。
-   - 真机请把 `api/ApiClient.kt` 的 `BASE_URL` 改为宿主机局域网 IP。
+3. 在模拟器运行（默认地址 `http://10.0.2.2:8000`，即宿主机后端）。
+   - 真机请把 App 顶部的「后端地址」改为宿主机局域网 IP（如 `192.168.1.10:8000`），点「保存」；
+     也可直接改 `api/ApiClient.kt` 的 `DEFAULT_BASE_URL`。App 已全局允许明文 HTTP。
 
 要点：
-- `BatteryMonitor.kt`：注册 `ACTION_BATTERY_CHANGED` 实时读电量，≤1% 触发 `onLowBattery`。
+- `BatteryMonitor.kt`：注册 `ACTION_BATTERY_CHANGED` 实时读电量，下穿 20%/10%/5% 或省电模式时触发 `onLowBattery`。
 - `MainActivity.handleLowBattery()`：自动定位 → 调 `/api/emergency` → 弹出最近可借点位。
 - `MapView.kt`：无三方 SDK 的轻量画布地图；`native/RouteJNI.kt`：JNI 本地 C++ 路线。
 
@@ -129,10 +130,11 @@ python scraper.py --lat 31.2304 --lng 121.4737 --radius 2000 --out stations.json
    - `Header Search Paths` → 添加仓库根的 `native/include`
    - 将 `native/src/{route,route_c_api,jsonlite}.cpp` 加入 target 的 Compile Sources
 3. 模拟器运行（`ApiClient.baseURL` 指向 `http://127.0.0.1:8000`）。
-   - 真机请改为宿主机局域网 IP。
+   - 真机请改为宿主机局域网 IP（可在运行时通过 `UserDefaults["baseURL"]` 覆盖）。
+   - `Info.plist` 已开启 `NSAllowsArbitraryLoads`，允许局域网明文 HTTP。
 
 要点：
-- `BatteryMonitor.swift`：`UIDevice.batteryLevelDidChangeNotification`，≤1% 触发兜底。
+- `BatteryMonitor.swift`：`UIDevice.batteryLevelDidChangeNotification`，下穿 20%/10%/5% 或低电量模式触发兜底。
 - `LocationManager.swift`：`CLLocationManager` 授权与定位。
 - `RouteBridge.swift`：通过桥接头调用 C 接口 `route_path`；`MapPolyline` 绘制路线。
 
@@ -147,7 +149,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 # 浏览器打开 http://127.0.0.1:8000/app/
 ```
 
-包含三个页面：**地图**（附近站点 + 电量条 + 模拟 1% 低电量自动定位 + 最快路线）、
+包含三个页面：**地图**（附近站点 + 电量条 + 模拟 20% 低电量自动定位 + 最快路线）、
 **详情**（站点信息 + C++ 最快路线 + 借用/归还）、**下载**（APK/iOS/源码下载 + 使用方法）。
 下载页会返回一个完整的 `chargetbuddy-source.zip`。
 
@@ -164,9 +166,9 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 - `a_star()`：以球面直线距离（时间模式按 1.4 m/s 换算为时间下界）为启发式加速；
 - 无向图、支持 `Distance` / `Time` 两种边权，`route_c_api.cpp` 导出 C 接口。
 
-### 低电量自动定位（1%）
-- Android：`ACTION_BATTERY_CHANGED` + `BatteryManager.EXTRA_LEVEL`，≤1% → 定位 → `/api/emergency`。
-- iOS：`UIDevice.batteryLevel` 通知，≤1% → `CLLocationManager` → `/api/emergency`。
+### 低电量自动定位（20%）
+- Android：`ACTION_BATTERY_CHANGED` + `BatteryManager.EXTRA_LEVEL`，下穿 20%/10%/5% 或省电模式 → 定位 → `/api/emergency`。
+- iOS：`UIDevice.batteryLevel` 通知，下穿 20%/10%/5% 或低电量模式 → `CLLocationManager` → `/api/emergency`。
 
 ### 地图抓包（Python）
 `scraper.py` 抽象 `MapProvider`（Mock / 高德 / 百度），按环境变量切换，
