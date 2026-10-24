@@ -1,0 +1,32 @@
+# C/C++ 构建产物
+native/build/
+native/*.o
+native/*.obj
+native/*.exe
+native/*.dll
+native/*.dylib
+native/*.so
+
+# Python
+__pycache__/
+*.pyc
+backend/stations.json
+.venv/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+
+# iOS / Xcode
+ios/**/xcuserdata/
+ios/**/*.xcworkspace/
+ios/build/
+DerivedData/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store

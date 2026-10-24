@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="充电宝救援 ChargeBuddy：低电量(1%)自动定位 + C++ 最快路线，跨 Kotlin/Swift/Python/C++ 四种语言协同的工程技术演示。">
+  <title>⚡ 充电宝救援 ChargeBuddy · README + 在线演示</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <a class="brand" href="#/" @click="goHome">⚡ 充电宝救援 <small>ChargeBuddy</small></a>
+    <nav class="tabs">
+      <a :class="{active: route === 'home'}" href="#/">首页</a>
+      <a :class="{active: route === 'demo' || route === 'detail'}" href="#/demo">演示</a>
+      <a :class="{active: route === 'download'}" href="#/download">下载</a>
+    </nav>
+    <div class="top-actions">
+      <span class="backend-chip" :class="backendOk === true ? 'on' : (backendOk === false ? 'off' : '')">
+        <i class="chip-dot"></i>{{ backendLabel }}
+      </span>
+      <button class="theme-btn" @click="toggleTheme" :title="theme === 'dark' ? '切换亮色主题' : '切换暗色主题'">
+        {{ theme === 'dark' ? '☀️' : '🌙' }}
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== 首页：README 文档 ===================== -->
+    <section class="view" v-show="route === 'home'">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-inner">
+          <div class="hero-badge">🔧 工程技术演示 Demo · 跨 4 种语言协同</div>
+          <h1>⚡ 充电宝救援 <span class="grad-text">ChargeBuddy</span></h1>
+          <p class="hero-sub">
+            面向「电量不足人群」的共享充电宝定位与借用应用：实时定位附近充电宝柜机，
+            <b>当电量降到 1% 时自动获取位置</b>，并给出 <b>最快路线</b>（C++ 算法）引导用户前往借用。
+          </p>
+          <div class="hero-btns">
+            <a class="btn primary lg" href="#/demo">🚀 立即体验在线演示</a>
+            <button class="btn ghost lg" @click="jumpTo('quickstart')">📖 快速开始</button>
+          </div>
+          <div class="lang-badges">
+            <span class="lb kotlin">Kotlin</span><span class="plus">+</span>
+            <span class="lb swift">Swift</span><span class="plus">+</span>
+            <span class="lb python">Python</span><span class="plus">+</span>
+            <span class="lb cpp">C/C++</span><span class="plus">+</span>
+            <span class="lb web">HTML·CSS·JS</span>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="hstat"><b>{{ statStations }}</b><span>充电宝站点</span></div>
+          <div class="hstat"><b>{{ statEngine }}</b><span>当前路线引擎</span></div>
+          <div class="hstat"><b>3</b><span>前端语言(HTML/CSS/JS)</span></div>
+          <div class="hstat"><b>4</b><span>跨语言协同</span></div>
+        </div>
+      </div>
+
+      <!-- 目录 -->
+      <div class="toc">
+        <span>📑 页面目录：</span>
+        <a href="#features" @click.prevent="jumpTo('features')">功能特性</a>
+        <a href="#stack" @click.prevent="jumpTo('stack')">技术栈</a>
+        <a href="#contract" @click.prevent="jumpTo('contract')">数据契约</a>
+        <a href="#quickstart" @click.prevent="jumpTo('quickstart')">快速开始</a>
+        <a href="#api" @click.prevent="jumpTo('api')">API 接口</a>
+        <a href="#core" @click.prevent="jumpTo('core')">核心实现</a>
+      </div>
+
+      <!-- 功能特性 -->
+      <section class="sec" id="features">
+        <div class="sec-head">
+          <h2>✨ 功能特性</h2>
+          <p>六大核心能力，覆盖「发现 → 导航 → 借用」完整链路</p>
+        </div>
+        <div class="grid3">
+          <div class="feature-card">
+            <span class="f-ico">🗺️</span>
+            <h3>附近站点展示</h3>
+            <p>站点以「有货 / 已借空」两种状态着色，实时库存一目了然。</p>
+          </div>
+          <div class="feature-card">
+            <span class="f-ico">🪫</span>
+            <h3>低电量自动定位</h3>
+            <p>电量 ≤ 1% 自动触发：抓取当前位置 → 推荐最近可借点位。</p>
+          </div>
+          <div class="feature-card">
+            <span class="f-ico">🧭</span>
+            <h3>最快路线规划</h3>
+            <p>Dijkstra / A* 双算法，支持「最快（时间）」与「最短（距离）」两种原则。</p>
+          </div>
+          <div class="feature-card">
+            <span class="f-ico">🔌</span>
+            <h3>借用 / 归还</h3>
+            <p>后端 REST 接口 + 内存库存，一键借用、归还实时更新。</p>
+          </div>
+          <div class="feature-card">
+            <span class="f-ico">🕷️</span>
+            <h3>地图抓包</h3>
+            <p>Python 从地图开放平台抓取充电宝 POI，刷新站点数据。</p>
+          </div>
+          <div class="feature-card">
+            <span class="f-ico">♻️</span>
+            <h3>一套算法三端复用</h3>
+            <p>同一套 C++ 被三种运行时复用：Python(ctypes)、Android(JNI)、iOS(C bridge)。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 技术栈 -->
+      <section class="sec" id="stack">
+        <div class="sec-head">
+          <h2>🧱 技术栈与目录结构</h2>
+          <p>四语言协同：Kotlin（Android）、Swift（iOS）、Python（后端 + 地图抓包）、C/C++（最快路线算法）</p>
+        </div>
+        <div class="grid2">
+          <div class="lang-card lc-kotlin">
+            <div class="l-name">🟣 Kotlin</div>
+            <div class="l-role">Android 客户端</div>
+            <p class="l-desc">Activity / 电量监听 / 定位 / 轻量画布地图 / 网络，JNI 桥接复用 C++ 路线引擎。</p>
+            <span class="l-path">android/app/src/main/</span>
+          </div>
+          <div class="lang-card lc-swift">
+            <div class="l-name">🟠 Swift</div>
+            <div class="l-role">iOS 客户端</div>
+            <p class="l-desc">SwiftUI + MapKit 界面，通过 Objective-C 桥接头调用 C 接口，MapPolyline 绘制路线。</p>
+            <span class="l-path">ios/PowerBankFinder/</span>
+          </div>
+          <div class="lang-card lc-python">
+            <div class="l-name">🐍 Python</div>
+            <div class="l-role">后端 + 地图抓包</div>
+            <p class="l-desc">FastAPI REST 接口，ctypes 桥接 C++，MapProvider 抽象（Mock/高德/百度）抓取 POI。</p>
+            <span class="l-path">backend/</span>
+          </div>
+          <div class="lang-card lc-cpp">
+            <div class="l-name">⚙️ C/C++</div>
+            <div class="l-role">最快路线算法核心</div>
+            <p class="l-desc">优先队列 Dijkstra + A* 启发式搜索，自带 jsonlite JSON 解析，导出纯 C 接口。</p>
+            <span class="l-path">native/</span>
+          </div>
+        </div>
+
+        <div class="tree-wrap">
+          <h3>📁 项目目录结构</h3>
+          <div class="code-block">
+            <div class="code-head"><span>map-electronic-for-help/</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+            <pre><code>map-electronic-for-help/
+├── native/                 # C/C++ 最快路线算法（核心）
+│   ├── include/            # jsonlite.h、route_c_api.h
+│   ├── src/                # route.cpp(Dijkstra/A*)、route_c_api.cpp(C接口)、jsonlite.cpp
+│   ├── tests/              # 单元测试
+│   └── CMakeLists.txt
+├── backend/                # Python 后端（FastAPI）
+│   ├── app.py              # REST 接口
+│   ├── stations_data.py    # 站点数据 + 路网图构建
+│   ├── route_bridge.py     # ctypes 桥接 C++
+│   ├── scraper.py          # 地图抓包（mock/高德/百度）
+│   └── requirements.txt
+├── android/                # Kotlin 客户端
+│   └── app/src/main/
+│       ├── java/com/powerbank/finder/   # Activity/电量/定位/地图/网络
+│       └── cpp/            # JNI 桥接 + CMake（复用 native 源码）
+├── ios/                    # Swift 客户端（SwiftUI + MapKit）
+│   └── PowerBankFinder/
+└── frontend/               # 网页版（HTML+CSS+JS / Vue3）· 就是本页</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 数据契约 -->
+      <section class="sec" id="contract">
+        <div class="sec-head">
+          <h2>📜 数据契约（跨语言共享）</h2>
+          <p>四种语言共同遵守的 JSON 结构，保证 C++ 核心与各端无缝对接</p>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>概念</th><th>字段</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>站点 Station</td><td><code>id, name, lat, lng, available, total, price_per_hour, distance_m</code></td><td>充电宝柜机</td></tr>
+              <tr><td>图 Graph</td><td><code>nodes:[{id,lat,lng}]</code> <code>edges:[{from,to,distance,time}]</code></td><td>无向图，<code>time</code> = 步行时间</td></tr>
+              <tr><td>路线 Route</td><td><code>found, mode, path[], total_weight</code></td><td><code>path</code> 为节点 id 序列</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="contract-note">
+          <h3>🔗 C 导出接口（native/include/route_c_api.h）</h3>
+          <div class="code-block">
+            <div class="code-head"><span>c</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+            <pre><code>// mode: 0=最快(time) 1=最短(distance)
+char* route_path(const char* graph_json, int start, int goal, int mode);
+void  route_free(char* p);</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 快速开始（可折叠） -->
+      <section class="sec" id="quickstart">
+        <div class="sec-head row">
+          <div class="sec-head-txt">
+            <h2>🚀 快速开始</h2>
+            <p>从编译 C++ 核心到打开网页版，共 6 步（点击步骤可展开 / 收起）</p>
+          </div>
+          <button class="mini" @click="toggleAllSteps">{{ allStepsOpen ? '▴ 收起全部' : '▾ 展开全部' }}</button>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[1] }">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(1)">
+              <h3>编译 C++ 核心（后端桥接所需）</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[1]">
+              <p>Windows 已用 g++ 14 验证，产物 <code>libfastroute.dll</code>。</p>
+              <div class="code-block">
+                <div class="code-head"><span>bash</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+                <pre><code># Windows（已用 g++ 14 验证，产物 libfastroute.dll）
+cd native
+g++ -std=c++17 -O2 -shared -I include -I src \
+    src/route.cpp src/route_c_api.cpp src/jsonlite.cpp -o libfastroute.dll
+
+# 运行单元测试
+g++ -std=c++17 -O2 -I include -I src \
+    src/route.cpp src/route_c_api.cpp src/jsonlite.cpp tests/test_route.cpp -o test_route &amp;&amp; ./test_route</code></pre>
+              </div>
+              <p class="step-note">macOS/Linux 相应产出 <code>libfastroute.dylib</code> / <code>libfastroute.so</code>；也可用 CMake 构建。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[2] }">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(2)">
+              <h3>启动后端</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[2]">
+              <div class="code-block">
+                <div class="code-head"><span>bash</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+                <pre><code>cd backend
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[3] }">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(3)">
+              <h3>地图抓包（刷新站点数据）</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[3]">
+              <div class="code-block">
+                <div class="code-head"><span>bash</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+                <pre><code>cd backend
+python scraper.py --lat 31.2304 --lng 121.4737 --radius 2000 --out stations.json
+
+# 接入真实地图平台：
+#   高德  MAP_PROVIDER=amap  AMAP_KEY=xxx python scraper.py ...
+#   百度  MAP_PROVIDER=baidu BAIDU_AK=xxx  python scraper.py ...</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[4] }">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(4)">
+              <h3>Android 客户端（Kotlin）</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[4]">
+              <ul>
+                <li>用 Android Studio 打开 <code>android/</code> 目录（AGP 8.5.2 / Kotlin 1.9.24）。</li>
+                <li>构建时通过 <code>app/src/main/cpp/CMakeLists.txt</code> 自动把 <code>native/</code> 的 C++ 源码编入 <code>libfastroute.so</code>，供 JNI 调用。</li>
+                <li>模拟器运行（<code>BASE_URL</code> 已指向 <code>http://10.0.2.2:8000</code>，即宿主机后端）；真机请把 <code>api/ApiClient.kt</code> 的 <code>BASE_URL</code> 改为宿主机局域网 IP。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[5] }">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(5)">
+              <h3>iOS 客户端（Swift）</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[5]">
+              <ul>
+                <li>新建 iOS App 工程（SwiftUI，iOS 17+），把 <code>ios/PowerBankFinder/</code> 下源码加入。</li>
+                <li>Build Settings 配置：<code>Objective-C Bridging Header</code> → <code>PowerBankFinder-Bridging-Header.h</code>；<code>Header Search Paths</code> → 添加仓库根 <code>native/include</code>；将 <code>native/src/{route,route_c_api,jsonlite}.cpp</code> 加入 target 的 Compile Sources。</li>
+                <li>模拟器运行（<code>ApiClient.baseURL</code> 指向 <code>http://127.0.0.1:8000</code>）；真机请改为宿主机局域网 IP。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="step" :class="{ open: openSteps[6] }">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <button class="step-head" @click="toggleStep(6)">
+              <h3>网页版前端（Vue3，无需安装即可体验）</h3>
+              <span class="chev">▾</span>
+            </button>
+            <div class="step-content" v-show="openSteps[6]">
+              <p><code>frontend/</code> 是纯 HTML+CSS+JS 的 Vue3 单页应用（Vue 已本地 vendored，离线可用），由后端直接托管，<b>不需要任何构建/安装</b>——本页正是它。</p>
+              <div class="code-block">
+                <div class="code-head"><span>bash</span><button class="copy-btn" @click="copyCode($event)">复制</button></div>
+                <pre><code>cd backend
+uvicorn app:app --host 0.0.0.0 --port 8000
+# 浏览器打开 http://127.0.0.1:8000/app/</code></pre>
+              </div>
+              <p class="step-note">自行部署：把 <code>frontend/</code> 放到任意静态服务器，通过后端挂载的 <code>/app</code> 路径访问即可；接口同源调用，无需 CORS 配置。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- API 接口 -->
+      <section class="sec" id="api">
+        <div class="sec-head">
+          <h2>🔌 REST 接口一览</h2>
+          <p>FastAPI 后端对外提供的全部接口（本页演示即调用这些接口）</p>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="mtd get">GET</span></td><td><code>/health</code></td><td>健康检查（含路线引擎：cpp/python）</td></tr>
+              <tr><td><span class="mtd get">GET</span></td><td><code>/api/stations?lat=&amp;lng=&amp;radius=</code></td><td>附近站点</td></tr>
+              <tr><td><span class="mtd get">GET</span></td><td><code>/api/route?from_lat=&amp;from_lng=&amp;station_id=&amp;mode=</code></td><td>最快/最短路线</td></tr>
+              <tr><td><span class="mtd get">GET</span></td><td><code>/api/emergency?lat=&amp;lng=</code></td><td>低电量兜底（最近可借 + 最快路线）</td></tr>
+              <tr><td><span class="mtd post">POST</span></td><td><code>/api/rent</code> / <code>/api/return</code></td><td>借用 / 归还</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 核心实现 -->
+      <section class="sec" id="core">
+        <div class="sec-head">
+          <h2>🧠 核心实现说明</h2>
+          <p>三大核心模块的实现原理</p>
+        </div>
+        <div class="core-list">
+          <div class="core-card">
+            <h3>⚙️ 最快路线算法（C++）</h3>
+            <p><code>native/src/route.cpp</code> 实现：<code>dijkstra()</code> 优先队列优化的单源最短路径；<code>a_star()</code> 以球面直线距离（时间模式按 1.4 m/s 换算为时间下界）为启发式加速；无向图、支持 <code>Distance</code> / <code>Time</code> 两种边权，<code>route_c_api.cpp</code> 导出 C 接口。</p>
+          </div>
+          <div class="core-card">
+            <h3>🪫 低电量自动定位（1%）</h3>
+            <p>Android：<code>ACTION_BATTERY_CHANGED</code> + <code>BatteryManager.EXTRA_LEVEL</code>，≤1% → 定位 → <code>/api/emergency</code>。iOS：<code>UIDevice.batteryLevel</code> 通知，≤1% → <code>CLLocationManager</code> → <code>/api/emergency</code>。</p>
+          </div>
+          <div class="core-card">
+            <h3>🕷️ 地图抓包（Python）</h3>
+            <p><code>scraper.py</code> 抽象 <code>MapProvider</code>（Mock / 高德 / 百度），按环境变量切换，抓取结果统一输出为 <code>stations.json</code>，供后端站点接口消费。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 免责声明 -->
+      <div class="callout warn">
+        ⚠️ <b>免责声明</b>：本项目为教学/演示用途，站点坐标与库存为模拟数据；真实接入地图数据需自行申请
+        高德/百度开放平台 API Key，并对接真实柜机厂商库存接口。
+      </div>
+    </section>
+
+    <!-- ===================== 演示：地图 + 低电量 + 路线 ===================== -->
+    <section class="view" v-show="route === 'demo'">
+      <div class="page-title-row">
+        <h2 class="page-title">🗺️ 附近充电宝 · 在线演示</h2>
+        <span class="hint">电量会缓慢下降，跌到 1% 自动触发「低电量兜底」</span>
+      </div>
+
+      <div class="battery-bar">
+        <div class="battery-icon" :class="{ low: battery <= 5 }">
+          <div class="battery-fill" :style="{ width: battery + '%' }"></div>
+        </div>
+        <span class="battery-num" :class="{ low: battery <= 5 }">{{ battery }}%</span>
+        <span class="hint">{{ batteryText }}</span>
+        <span class="spacer"></span>
+        <button class="mini danger" @click="simulateLowBattery">🪫 模拟电量 1%</button>
+        <button class="mini" @click="locate">📍 重新定位</button>
+      </div>
+
+      <div class="map-wrap">
+        <canvas ref="homeCanvas" @click="onHomeClick" @mousemove="onHomeMove"></canvas>
+        <div class="loading" v-if="loading">加载中…</div>
+        <div class="legend">
+          <span class="lg"><i class="dot ok"></i>有货</span>
+          <span class="lg"><i class="dot empty"></i>已借空</span>
+          <span class="lg"><i class="dot user"></i>我</span>
+          <span class="lg route-x">── 最快路线</span>
+          <span class="lg">👆 点击站点可看详情</span>
+        </div>
+      </div>
+
+      <div class="notice" :class="{ err: noticeErr }" v-if="notice">{{ notice }}</div>
+
+      <div class="search-row">
+        <input class="search-box" type="search" v-model="searchQuery" placeholder="🔍 搜索站点名称…">
+        <span class="hint" v-if="stations.length">{{ filteredStations.length }} / {{ stations.length }} 个</span>
+      </div>
+
+      <ul class="station-list">
+        <li v-for="s in filteredStations" :key="s.id" @click="goDetail(s)">
+          <div class="s-left">
+            <div class="s-name">{{ s.name }}</div>
+            <div class="s-meta">{{ Math.round(s.distance_m) }} 米 · 单价 ¥{{ s.price_per_hour }}/小时</div>
+          </div>
+          <span class="dot" :class="s.available > 0 ? 'ok' : 'empty'"></span>
+          <div class="s-status" :class="s.available > 0 ? 'ok' : 'empty'">
+            {{ s.available > 0 ? ('有货 ' + s.available + '/' + s.total) : '已借空' }}
+          </div>
+        </li>
+        <li v-if="!stations.length" class="empty-li">暂无站点数据，请先启动后端</li>
+        <li v-else-if="!filteredStations.length" class="empty-li">没有匹配「{{ searchQuery }}」的站点</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 详情：站点信息 + 最快路线 + 借用 ===================== -->
+    <section class="view" v-show="route === 'detail'">
+      <template v-if="selected">
+        <a class="back-link" href="#/demo">← 返回地图</a>
+
+        <div class="detail-card">
+          <h2>🔋 {{ selected.name }}</h2>
+          <p class="meta-line">距离约 {{ Math.round(selected.distance_m) }} 米 · 单价 ¥{{ selected.price_per_hour }}/小时</p>
+          <p class="meta-line">库存
+            <b :class="selected.available > 0 ? 'ok-text' : 'text-red'">{{ selected.available }}</b> / {{ selected.total }}
+            · <span class="dot" :class="selected.available > 0 ? 'ok' : 'empty'"></span>
+            {{ selected.available > 0 ? '有货可借' : '已借空' }}
+          </p>
+          <div class="btns">
+            <button class="primary" :disabled="selected.available <= 0" @click="rent">🔌 借用充电宝</button>
+            <button @click="rentBack">🔋 归还</button>
+          </div>
+        </div>
+
+        <div class="route-card">
+          <h3>路线规划 <small>（{{ routeEngine }} · Dijkstra / A*）</small></h3>
+          <div class="seg">
+            <button :class="{ on: routeMode === 'time' }" @click="loadRoute('time')">⚡ 最快（时间）</button>
+            <button :class="{ on: routeMode === 'distance' }" @click="loadRoute('distance')">📏 最短（距离）</button>
+          </div>
+          <p class="route-text">{{ routeText || '点击上方按钮，C++ 算法为你生成路线' }}</p>
+        </div>
+
+        <div class="map-wrap tall">
+          <canvas ref="detailCanvas" @click="onDetailClick" @mousemove="onDetailMove"></canvas>
+        </div>
+
+        <div class="notice" :class="{ err: noticeErr }" v-if="notice">{{ notice }}</div>
+      </template>
+      <p v-else class="empty-tip">请先到「演示」页选择一个站点</p>
+    </section>
+
+    <!-- ===================== 下载与使用方法 ===================== -->
+    <section class="view" v-show="route === 'download'">
+      <h2 class="page-title">📦 下载与详情</h2>
+
+      <div class="dl-grid">
+        <div class="dl-card">
+          <div class="dl-ico">📱</div>
+          <h3>Android APK</h3>
+          <p>Kotlin 客户端 · 含 C++ 路线引擎 (JNI)</p>
+          <span v-if="apkState === 'yes'" class="pending ok-text">已就绪</span>
+          <span v-else-if="apkState === 'no'" class="pending">尚未打包：说"打包Android"即可生成</span>
+          <span v-else class="pending">检测中…</span>
+          <a v-if="apkState === 'yes'" class="btn primary" href="downloads/app-debug.apk" download>下载 APK</a>
+          <button v-else disabled>暂未打包</button>
+        </div>
+
+        <div class="dl-card">
+          <div class="dl-ico">🍎</div>
+          <h3>iOS 安装包</h3>
+          <p>Swift + SwiftUI 客户端 · C bridge 调 C++</p>
+          <span class="pending">需 macOS/Xcode 构建</span>
+          <button disabled>Windows 无法打包</button>
+        </div>
+
+        <div class="dl-card">
+          <div class="dl-ico">🗂️</div>
+          <h3>项目源码 ZIP</h3>
+          <p>前端 / 后端 / C++ 算法 / Android / iOS</p>
+          <span class="pending ok-text">完整源码</span>
+          <a class="btn primary" href="downloads/chargetbuddy-source.zip" download>下载源码</a>
+        </div>
+      </div>
+
+      <div class="usage">
+        <h2>📖 实际使用方法（网页版）</h2>
+        <ol>
+          <li><b>启动后端</b>（CD 到 backend/ 目录）：
+            <code>uvicorn app:app --host 0.0.0.0 --port 8000</code>
+            <span class="pending" v-if="backendOk === false">· 后端未连接，请先启动</span>
+            <span class="ok-text" v-else-if="backendOk === true">· 后端已连接 ✓</span>
+          </li>
+          <li><b>打开本页</b>：浏览器访问 <code>http://127.0.0.1:8000/app/</code></li>
+          <li><b>体验低电量自动定位</b>：点「模拟电量 1%」→ 自动定位并推荐最近可借点位 + 最快路线</li>
+          <li><b>详情/借用</b>：点击列表站点（或地图上的站点圆点）进入「详情」，切换最快/最短路线，一键借用/归还</li>
+          <li><b>电量模拟</b>：页面电量会缓慢下降，跌到 1% 会自动触发兜底流程</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="foot">
+    <p>⚡ 充电宝救援 <b>ChargeBuddy</b> Demo —— 依据 README.md 生成的单页站点（HTML + CSS + JavaScript / Vue3）</p>
+    <p>前端 Vue3（本地 vendored）· 后端 FastAPI · 核心算法 C++（Dijkstra / A*）</p>
+    <p class="dim">教学/演示用途 · 站点坐标与库存为模拟数据</p>
+  </footer>
+
+  <!-- 回到顶部 -->
+  <button class="back-top" v-show="showTop" @click="goTop" title="回到顶部">⬆</button>
+
+  <!-- ===================== 低电量提醒弹窗 ===================== -->
+  <div class="modal-mask" v-show="modal.show" @click.self="closeModal">
+    <div class="modal">
+      <h2>⚡ {{ modal.title }}</h2>
+      <p class="modal-body">{{ modal.body }}</p>
+      <div class="btns" v-if="selected">
+        <button class="primary" @click="goModalDetail">查看最近可借点位</button>
+        <button @click="closeModal">稍后再说</button>
+      </div>
+      <div class="btns" v-else>
+        <button class="primary" @click="closeModal">知道了</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<noscript>
+  <div style="padding:40px;text-align:center;font-family:sans-serif">
+    本页面需要启用 JavaScript（HTML + CSS + JS 前端技术栈）才能运行。
+  </div>
+</noscript>
+
+<script src="js/vendor/vue.global.prod.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

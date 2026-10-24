@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">充电宝救援</string>
+    <string name="btn_refresh">刷新附近站点</string>
+    <string name="btn_simulate">模拟电量到 1%</string>
+    <string name="btn_local_route">本地最快路线(C++)</string>
+    <string name="battery_prefix">当前电量</string>
+</resources>
